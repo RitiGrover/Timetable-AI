@@ -19,6 +19,12 @@ Alongside scheduling, the system includes an academic planning layer that distri
 
 ---
 
+# Deployed Website
+
+Live: https://timetable-ai-cyan.vercel.app/
+
+---
+
 ## Approach
 
 The scheduling engine is built around a backtracking search with heuristic improvements. Variable selection is guided by the Minimum Remaining Values (MRV) strategy, while forward checking is used to prune invalid assignments early and reduce the search space. Constraints are enforced incrementally, ensuring consistency at every step of the assignment process.

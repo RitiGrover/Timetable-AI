@@ -1,122 +1,49 @@
-# AI Exam Timetable Generator using CSP
+# Student Productivity Platform
 
-A clean, professional full-stack application that generates a conflict-free exam timetable using **Constraint Satisfaction Problem (CSP)** techniques.
+[![Python](https://img.shields.io/badge/python-3.10%2B-0A66C2?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/fastapi-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![JavaScript](https://img.shields.io/badge/javascript-000000?style=flat&logo=javascript&logoColor=F7DF1E)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+[![License](https://img.shields.io/github/license/RitiGrover/Timetable-AI?style=flat)](LICENSE)
+[![Last Commit](https://img.shields.io/github/last-commit/RitiGrover/Timetable-AI?style=flat)](https://github.com/RitiGrover/Timetable-AI/commits)
+[![Repo Size](https://img.shields.io/github/repo-size/RitiGrover/Timetable-AI?style=flat)](https://github.com/RitiGrover/Timetable-AI)
 
-This project is designed for academic submission and portfolio demonstration, with strong focus on clarity, correctness, and explainability.
+A constraint-driven scheduling system that generates conflict-free exam timetables using Constraint Satisfaction Problem (CSP) techniques, with an integrated academic mode for structured study planning.
 
-## Project Overview
+---
 
-The system schedules subjects into available exam time slots while ensuring that subjects with common students are never assigned the same slot.
+## Overview
 
-It supports two input styles:
+The project models exam scheduling as a formal CSP, where subjects are assigned to time slots under strict conflict constraints derived from shared student enrollments or explicitly defined relationships. The solver guarantees that no conflicting subjects are placed in the same slot, producing a valid timetable whenever a solution exists.
 
-1. **Preferred**: `Subject -> list of students`
-2. **Alternative**: Direct subject conflict pairs
+Alongside scheduling, the system includes an academic planning layer that distributes study sessions across available time in a controlled and balanced manner, taking into account exam timelines and subject difficulty.
 
-## CSP Mapping
+---
 
-- **Variables**: Subjects (e.g., Math, Physics)
-- **Domains**: Allowed exam slots (e.g., Slot 1, Slot 2, ...)
-- **Constraints**: Conflicting subjects (shared students or manually defined conflicts) cannot share a slot
+## Approach
 
-## Features
+The scheduling engine is built around a backtracking search with heuristic improvements. Variable selection is guided by the Minimum Remaining Values (MRV) strategy, while forward checking is used to prune invalid assignments early and reduce the search space. Constraints are enforced incrementally, ensuring consistency at every step of the assignment process.
 
-- Build conflict graph from enrollments or conflict pairs
-- CSP solver with:
-  - Backtracking (mandatory baseline)
-  - MRV heuristic
-  - Forward Checking
-- Conflict-free timetable generation
-- Explainability:
-  - Why subjects conflict
-  - How slots are assigned
-- Performance comparison table:
-  - Execution time
-  - Recursive calls
-  - Constraint checks
-- Option to select number of time slots
-- Auto-generated sample dataset
-- Minimal, professional dashboard-style UI
+The academic planner operates on top of this structure, treating study sessions as allocatable slots and applying distribution rules to avoid clustering while maintaining a consistent workload.
 
-## Tech Stack
+---
 
-- **Frontend**: HTML, CSS, JavaScript
-- **Backend**: Python, FastAPI
-- **Charts**: Not required (table-first approach used)
+## System
 
-## Code Structure
+The backend is implemented using FastAPI in Python, with the CSP solver and graph construction handled as modular components. The frontend is a minimal interface built with HTML, CSS, and JavaScript, focused on clarity and direct interaction with the scheduling engine.
 
-- `app.py` -> FastAPI backend and API routes
-- `csp.py` -> CSP algorithms (`is_valid`, `backtracking`, MRV, forward checking)
-- `graph.py` -> Conflict graph creation and processing
-- `metrics.py` -> Performance metrics tracking
-- `static/index.html` -> UI structure
-- `static/styles.css` -> Minimal professional styling
-- `static/app.js` -> Frontend logic and API integration
+---
 
-## Setup Instructions
+## Structure
 
-1. Create and activate a virtual environment (recommended).
-2. Install dependencies:
-
-```bash
-pip install -r requirements.txt
+```
+.
+├── app.py
+├── csp.py
+├── graph.py
+├── metrics.py
+└── static/
+    ├── index.html
+    ├── styles.css
+    └── app.js
 ```
 
-3. Run the server:
-
-```bash
-uvicorn app:app --reload
-```
-
-Alternative (recommended, one-command reliable startup):
-
-```bash
-bash run.sh
-```
-
-4. Open in browser:
-
-```text
-http://127.0.0.1:8000
-```
-
-## Example Input/Output
-
-### Example Input (Option A)
-
-```text
-Math: S1, S2, S3
-Physics: S2, S4
-Chemistry: S1, S5
-Biology: S6, S7
-```
-
-Time slots: `3`
-
-### Example Output
-
-```text
-Math -> Slot 1
-Physics -> Slot 2
-Chemistry -> Slot 2
-Biology -> Slot 1
-```
-
-Validation: `Conflict-free timetable generated successfully.`
-
-## Algorithm Explanation (Simple)
-
-1. Build a conflict graph:
-   - Each subject is a node.
-   - An edge is added when two subjects share students (or are manually marked as conflicting).
-2. Start CSP solving using backtracking.
-3. Use **MRV** to pick the subject with the fewest remaining valid slots first.
-4. Use **Forward Checking** to remove invalid slots from neighboring subjects after each assignment.
-5. Continue until all subjects are assigned, or report that no solution exists for current slot count.
-
-## Why This Is Viva-Friendly
-
-- Direct mapping between CSP theory and implementation
-- Human-readable conflict reasons and assignment steps
-- Clean UI with transparent outputs and measurable performance

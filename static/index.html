@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Exam Timetable Generator using CSP</title>
+  <meta name="description" content="AI-powered exam timetable generator using CSP. Build conflict-free timetables and export official exam schedules." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Export + OCR libs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+
+  <!-- ════════════════════════════════════════════════════
+       MAIN PAGE
+       ════════════════════════════════════════════════════ -->
+  <div class="shell" id="main-shell">
+    <div class="container">
+
+      <!-- NAVBAR -->
+      <header class="topbar" id="top">
+        <div class="brand">
+          <span class="brand-mark"></span>
+          <span class="brand-text">Timetable AI</span>
+        </div>
+        <nav class="topnav">
+          <a href="#how-it-works" id="nav-product">product</a>
+          <a href="#about"        id="nav-about">about</a>
+        </nav>
+        <div class="top-actions">
+          <button id="nav-academic-mode" class="ghost" type="button">academic mode</button>
+          <button id="nav-solve-now"     class="accent" type="button">solve now</button>
+        </div>
+      </header>
+
+      <!-- HERO -->
+      <section class="hero" id="hero">
+        <h1>Doing exam scheduling right</h1>
+        <p>Generate conflict-free exam timetables using clear CSP logic: variables, constraints, domains, and explainable assignments.</p>
+      </section>
+
+      <!-- TIMETABLE GENERATOR -->
+      <main class="grid" id="input-form">
+        <section class="panel input-panel">
+          <div class="panel-head">
+            <h2>Input</h2>
+            <span class="pill">configure</span>
+          </div>
+
+          <label for="mode">Input Mode</label>
+          <select id="mode">
+            <option value="enrollments">Subject → Students (Preferred)</option>
+            <option value="pairs">Subject Conflict Pairs</option>
+          </select>
+
+          <label for="slots">Number of Time Slots</label>
+          <input id="slots" type="number" min="1" max="20" value="4" />
+
+          <div id="enrollments-section">
+            <label for="enrollments-text">Enter data (one line per subject): Subject: student1, student2</label>
+            <textarea id="enrollments-text" rows="10" placeholder="Math: S1, S2, S3&#10;Physics: S2, S4&#10;Chemistry: S1, S5"></textarea>
+          </div>
+
+          <div id="pairs-section" class="hidden">
+            <label for="subjects-text">Subjects (comma separated)</label>
+            <textarea id="subjects-text" rows="3" placeholder="Math, Physics, Chemistry, Biology"></textarea>
+            <label for="pairs-text">Conflict pairs (one per line): SubjectA - SubjectB</label>
+            <textarea id="pairs-text" rows="7" placeholder="Math - Physics&#10;Physics - Chemistry"></textarea>
+          </div>
+
+          <div class="actions">
+            <button id="sample-btn" class="secondary">Auto-generate Sample Data</button>
+            <button id="solve-btn">Solve using AI</button>
+          </div>
+          <p id="status" class="status"></p>
+        </section>
+
+        <section class="panel output-panel">
+          <div class="panel-head">
+            <h2>Output &amp; Analysis</h2>
+            <span class="pill">results</span>
+          </div>
+
+          <div class="block">
+            <div class="block-head-row">
+              <h3>Timetable</h3>
+              <div class="export-btns" id="export-btns" style="display:none;">
+                <button id="export-pdf-btn" class="export-btn export-btn-pdf" type="button">⬇ PDF</button>
+                <button id="export-png-btn" class="export-btn export-btn-png" type="button">⬇ PNG</button>
+              </div>
+            </div>
+            <div id="exam-schedule-wrapper">
+              <table id="exam-schedule-table">
+                <thead>
+                  <tr>
+                    <th>SL. NO.</th><th>DATE</th><th>DAY</th>
+                    <th>TIMINGS</th><th>COURSE CODE</th><th>COURSE TITLE</th>
+                  </tr>
+                </thead>
+                <tbody id="timetable-body">
+                  <tr><td colspan="6" class="muted">No result yet.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p id="validation" class="validation muted">Validation message will appear here.</p>
+          </div>
+
+          <div class="block">
+            <h3>Algorithm Performance</h3>
+            <table>
+              <thead>
+                <tr><th>Algorithm</th><th>Time (ms)</th><th>Recursive Calls</th><th>Constraint Checks</th></tr>
+              </thead>
+              <tbody id="metrics-body">
+                <tr><td colspan="4" class="muted">No performance data yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="block">
+            <h3>Conflicts Explained</h3>
+            <ul id="conflict-list" class="explain-list">
+              <li class="muted">Conflict reasons will appear here.</li>
+            </ul>
+          </div>
+
+          <div class="block">
+            <h3>Assignment Explanation</h3>
+            <ul id="steps-list" class="explain-list">
+              <li class="muted">Assignment steps will appear here.</li>
+            </ul>
+          </div>
+        </section>
+      </main>
+
+      <!-- HOW IT WORKS -->
+      <section class="section" id="how-it-works">
+        <div class="section-header">
+          <span class="section-tag">product</span>
+          <h2 class="section-title">How This Website Works</h2>
+          <p class="section-sub">A clear four-step process from your data to a conflict-free exam timetable.</p>
+        </div>
+        <div class="steps-row">
+          <div class="step-card">
+            <div class="step-num">01</div>
+            <span class="step-icon">✏️</span>
+            <h3>Enter Subjects &amp; Constraints</h3>
+            <p>Provide your subjects and enrolled students — or directly input conflict pairs. Both formats supported.</p>
+          </div>
+          <div class="step-arrow">→</div>
+          <div class="step-card">
+            <div class="step-num">02</div>
+            <span class="step-icon">🧩</span>
+            <h3>Model as a CSP</h3>
+            <p>Data converts into a Constraint Satisfaction Problem — variables (subjects), domains (time slots), constraints (no shared-student conflicts).</p>
+          </div>
+          <div class="step-arrow">→</div>
+          <div class="step-card">
+            <div class="step-num">03</div>
+            <span class="step-icon">⚙️</span>
+            <h3>Backtracking Assigns Slots</h3>
+            <p>Three variants run: plain Backtracking, + MRV, and + MRV + Forward Checking. The best valid solution is selected.</p>
+          </div>
+          <div class="step-arrow">→</div>
+          <div class="step-card">
+            <div class="step-num">04</div>
+            <span class="step-icon">✅</span>
+            <h3>Conflict-Free Timetable</h3>
+            <p>Every subject gets a unique slot with no conflicts. Download as an official university exam schedule (PDF or PNG).</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ABOUT -->
+      <section class="section" id="about">
+        <div class="section-header">
+          <span class="section-tag">about</span>
+          <h2 class="section-title">AI-powered scheduling, built for academics</h2>
+        </div>
+        <div class="about-inner">
+          <div class="about-left">
+            <p class="about-desc">
+              Timetable AI solves exam scheduling complexity using Constraint Satisfaction Programming (CSP) with backtracking algorithms — guaranteeing conflict-free schedules where no two clashing subjects share the same slot.
+            </p>
+            <p class="about-desc">
+              <strong>Academic Mode</strong> gives students a personal AI study coach — smart workload distribution, revision windows, visual calendars, and countdown timers to every exam.
+            </p>
+            <p class="about-desc" style="font-size:0.88rem;color:#888383;">
+              Purpose: <strong style="color:#3d4047;">AI-powered timetable and study planner using CSP</strong>
+            </p>
+            <div class="feature-grid">
+              <span class="feature-pill">🎯 Conflict-free scheduling</span>
+              <span class="feature-pill">🧠 AI Study Planner</span>
+              <span class="feature-pill">📅 Calendar View</span>
+              <span class="feature-pill">📤 PDF &amp; PNG Export</span>
+              <span class="feature-pill">🔍 OCR Image Upload</span>
+              <span class="feature-pill">⏳ Exam Countdown</span>
+              <span class="feature-pill">✏️ Editable Schedule</span>
+              <span class="feature-pill">🏛️ University Export Format</span>
+            </div>
+          </div>
+          <div class="about-right">
+            <div class="contact-card-block">
+              <p class="contact-heading">Creator &amp; Links</p>
+              <div class="contact-card">
+                <div class="contact-avatar">R</div>
+                <div class="contact-info">
+                  <span class="contact-name">Riti Grover</span>
+                  <span class="contact-email">AI Timetable Generator using CSP</span>
+                  <div class="contact-links">
+                    <a href="https://github.com/RitiGrover" target="_blank" rel="noopener" id="contact-github-1" class="contact-badge">github.com/RitiGrover ↗</a>
+                    <a href="https://www.linkedin.com/in/ritigrover" target="_blank" rel="noopener" id="contact-linkedin-1" class="contact-badge">linkedin.com/in/ritigrover ↗</a>
+                  </div>
+                </div>
+              </div>
+              <div class="tech-block">
+                <span class="tech-heading">Built with</span>
+                <div class="tech-tags">
+                  <span class="tech-tag">Python</span>
+                  <span class="tech-tag">FastAPI</span>
+                  <span class="tech-tag">CSP / Backtracking</span>
+                  <span class="tech-tag">Tesseract OCR</span>
+                  <span class="tech-tag">jsPDF</span>
+                  <span class="tech-tag">Vanilla JS</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /container -->
+  </div><!-- /main-shell -->
+
+
+  <!-- ════════════════════════════════════════════════════
+       ACADEMIC MODE — FULL-SCREEN PAGE
+       Completely separate from main shell, shown via JS
+       ════════════════════════════════════════════════════ -->
+  <div id="academic-page" class="academic-page hidden">
+    <div class="ap-container">
+
+      <!-- AP Header -->
+      <header class="ap-header">
+        <div class="brand">
+          <span class="brand-mark"></span>
+          <span class="brand-text">Timetable AI</span>
+        </div>
+        <h1 class="ap-title">AI Study Planner</h1>
+        <button id="ap-back-btn" class="ap-back-btn" type="button">← Back to Timetable Generator</button>
+      </header>
+
+      <!-- Input Tabs -->
+      <div class="am-tabs">
+        <button id="tab-manual" class="am-tab active" type="button">✏️ Manual Input</button>
+        <button id="tab-ocr"    class="am-tab"        type="button">📷 Upload Timetable Image</button>
+      </div>
+
+      <!-- MANUAL INPUT -->
+      <div id="am-manual-panel" class="am-panel">
+        <div class="am-form-grid">
+          <div class="am-col">
+            <h3>Exam Dates</h3>
+            <p class="am-hint">One exam per line: <code>Subject: DD-MM-YYYY</code></p>
+            <textarea id="am-exam-dates" rows="8"
+              placeholder="Math: 10-05-2026&#10;Physics: 12-05-2026&#10;Chemistry: 15-05-2026&#10;Biology: 17-05-2026"></textarea>
+
+            <div class="am-options-row">
+              <div class="am-option">
+                <label for="am-hours-day">Study hours / day</label>
+                <input id="am-hours-day" type="number" min="1" max="16" value="6" />
+              </div>
+              <div class="am-option">
+                <label for="am-difficulty">Default difficulty</label>
+                <select id="am-difficulty">
+                  <option value="1">Low</option>
+                  <option value="2" selected>Medium</option>
+                  <option value="3">High</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="actions" style="margin-top:16px;">
+              <button id="am-generate-btn" type="button">Generate Study Plan</button>
+            </div>
+          </div>
+
+          <div class="am-col">
+            <h3>Per-Subject Difficulty <small style="font-weight:400;font-size:0.78rem;">(optional)</small></h3>
+            <p class="am-hint">Override difficulty per subject once exam dates are entered.</p>
+            <div id="am-subject-difficulty-list" class="am-subject-diff-list">
+              <p class="muted" style="font-size:0.82rem;">Subjects appear here after you enter exam dates.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- OCR UPLOAD -->
+      <div id="am-ocr-panel" class="am-panel hidden">
+        <div class="ocr-drop-zone" id="ocr-drop-zone">
+          <div class="ocr-drop-inner">
+            <span class="ocr-icon">📷</span>
+            <p class="ocr-label">Drop your exam timetable image here or <label for="ocr-file-input" class="ocr-browse-link">BROWSE</label></p>
+            <p class="ocr-hint">Supports JPG, PNG · OCR runs entirely in your browser</p>
+            <input type="file" id="ocr-file-input" accept="image/png,image/jpeg" class="hidden" />
+          </div>
+          <img id="ocr-preview" src="" alt="Uploaded timetable preview" class="hidden ocr-preview-img" />
+        </div>
+        <div id="ocr-status" class="ocr-status hidden"></div>
+
+        <!-- OCR result area -->
+        <div id="ocr-result-area" class="hidden" style="margin-top:16px;">
+          <div class="ocr-parsed-section" id="ocr-parsed-section" style="display:none;">
+            <p class="ocr-parsed-heading">✅ Auto-parsed exams — review before using:</p>
+            <div id="ocr-parsed-list" class="ocr-parsed-list"></div>
+            <div class="actions" style="margin-top:10px;">
+              <button id="ocr-use-parsed-btn" type="button">Use Parsed Data →</button>
+              <button id="ocr-show-raw-btn" class="secondary" type="button">Show Raw Text</button>
+            </div>
+          </div>
+
+          <div class="ocr-raw-section" id="ocr-raw-section" style="display:none;">
+            <p class="section-tag" style="margin-bottom:8px;">Extracted text — review and correct below:</p>
+            <textarea id="ocr-extracted-text" rows="7" placeholder="OCR result will appear here…"></textarea>
+            <div class="actions" style="margin-top:10px;">
+              <button id="ocr-parse-btn" class="secondary" type="button">← Back to Parsed</button>
+              <button id="ocr-use-raw-btn" type="button">Use This Text →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- OUTPUT (shown after plan generated) -->
+      <div id="am-output" class="am-output hidden">
+
+        <div class="countdown-panel" id="countdown-panel">
+          <p class="am-section-head">⏳ Exam Countdown</p>
+          <div id="countdown-cards" class="countdown-cards"></div>
+        </div>
+
+        <div class="calendar-block" id="calendar-block">
+          <p class="am-section-head">📅 Calendar View</p>
+          <div id="calendar-grid" class="calendar-grid"></div>
+        </div>
+
+        <div class="schedule-block" id="schedule-block">
+          <div class="schedule-head-row">
+            <p class="am-section-head" style="margin-bottom:0;">✏️ Editable Study Schedule</p>
+            <button id="am-recalculate-btn" class="btn-recalc" type="button">↻ Recalculate</button>
+          </div>
+          <div id="editable-schedule" class="editable-schedule" style="margin-top:14px;"></div>
+        </div>
+
+        <div class="am-export-row">
+          <p class="am-section-head">📤 Export Study Plan</p>
+          <div class="am-export-btns">
+            <button id="am-export-pdf-btn" class="export-btn export-btn-pdf" type="button">⬇ Download PDF</button>
+            <button id="am-export-png-btn" class="export-btn export-btn-png" type="button">⬇ Download PNG</button>
+          </div>
+        </div>
+
+      </div><!-- /am-output -->
+
+    </div><!-- /ap-container -->
+  </div><!-- /academic-page -->
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
